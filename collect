@@ -1,0 +1,43 @@
+#!/bin/bash
+
+DEFAULT_OUTPUT_DIR="/tmp-metrics"
+DEFAULT_NAMESPACE="node-metrics"
+TAR_NAME="metrics-collection.tar"
+COPY_DIR="/must-gather/"
+
+# Set default args
+set_default_args() {
+    if [[ "${OUTPUT_DIR}" == "" ]]; then
+        echo "Using default output directory: ${DEFAULT_OUTPUT_DIR}"
+        OUTPUT_DIR=$DEFAULT_OUTPUT_DIR
+    fi
+
+    if [[ "${NAMESPACE}" == "" ]]; then
+        echo "Using default namespace: ${DEFAULT_NAMESPACE}"
+        NAMESPACE=$DEFAULT_NAMESPACE
+    fi
+}
+
+collect_metrics() {
+  local metric_pods
+  metric_pods="$(oc get pods -n ${NAMESPACE} -o jsonpath='{.items[*].metadata.name}' )"
+
+  for pod in $metric_pods; do
+    local node_name="$(oc get pods ${pod} -n ${NAMESPACE} -o jsonpath='{.spec.nodeName}' )"
+    local output_dir="${OUTPUT_DIR}/${node_name}"
+    
+    echo "Collecting metrics for ${node_name}"
+    mkdir -p "$output_dir"
+    oc cp -n $NAMESPACE "${pod}:metrics/" "${output_dir}"
+  done
+}
+
+move_collection() {
+    echo "Preparing mertics for download"
+    mkdir -p $COPY_DIR
+    mv $OUTPUT_DIR/* $COPY_DIR/
+}
+
+set_default_args
+collect_metrics
+move_collection

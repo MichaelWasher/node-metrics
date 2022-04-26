@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-scripts
+  namespace:   {{ .Values.namespace.name }}
+data:
+  {{- $files := .Files }}
+  {{- range tuple "scripts/monitor.sh" "scripts/collect-metrics.sh" }}
+  {{ $filePath := split "/" . }}
+  {{ $filePath._1 }}: |-
+        {{ $files.Get . | nindent 8 }}
+  {{- end }}

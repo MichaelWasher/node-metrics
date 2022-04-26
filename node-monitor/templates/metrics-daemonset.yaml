@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "node-monitor.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "node-monitor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "node-monitor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "node-monitor.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "node-monitor.serviceAccountName" . }}
+      serviceAccount: {{ include "node-monitor.serviceAccountName" . }}
+      containers:
+      - name: metrics-daemonset
+        image: {{ .Values.image.repository }}
+        command:
+          - "/bin/bash"
+          - "-c"
+          - "bash /scripts/collect-metrics.sh && sleep infinity"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: output
+          mountPath: /metrics  
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          privileged: true
+      volumes:
+      - name: scripts
+        configMap:
+          name: metrics-scripts
+      - name: output
+        hostPath:
+          path: /var/log/metric-collection
+          type: DirectoryOrCreate
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

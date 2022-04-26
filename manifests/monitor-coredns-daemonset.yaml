@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: monitor-coredns-daemonset
+  namespace: metrics-debug
+  labels:
+    app: monitor-coredns-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: monitor-coredns-daemonset
+  template:
+    metadata:
+      labels:
+        app: monitor-coredns-daemonset
+    spec:
+      # tolerations:
+      ## this toleration is to have the daemonset runnable on master nodes
+      ## remove it if your masters can't run pods
+      # - key: node-role.kubernetes.io/master
+      #  effect: NoSchedule
+      hostPID: true
+      hostIPC: true
+      hostNetwork: true
+      containers:
+      - name: monitor-coredns-daemonset
+        image: fedora:latest
+        command:
+          - "/bin/bash"
+          - "-c"
+          - "bash /entrypoint/install-requirements.sh && bash /entrypoint/collect-metrics.sh && sleep infinity"
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: entrypoint
+          mountPath: /entrypoint
+        - name: monitor
+          mountPath: /monitor
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          privileged: true
+      volumes:
+      - name: entrypoint
+        configMap:
+          name: monitor-coredns-scripts
+      - name: monitor
+        configMap:
+          name: monitor-coredns

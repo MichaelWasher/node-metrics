@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitor-scripts
+  namespace: metrics-debug
+data:
+  install-requirements.sh: |
+    #!/bin/bash
+    yum install conntrack-tools procps-ng ethtool numactl psmisc hostname iproute sysstat net-tools -y
+  collect-metrics.sh: |
+    #!/bin/bash
+    echo "Gathering metrics ..."
+    mkdir /network-metrics
+    rm -Rf /network-metrics/*
+    echo "Gathering monitor metrics ..."
+    cd /network-metrics
+    bash -c "while true ; do date ; conntrack -L -n ; sleep 5; done" >> conntrack.txt &
+    CONNTRACK=$!
+    bash /monitor/monitor.sh -d 5 -i 120
+    kill $CONNTRACK
+    tar -czf /network-metrics.tar.gz /network-metrics
+    echo "Done with network metrics collection."

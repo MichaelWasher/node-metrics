@@ -1,0 +1,23 @@
+#!/bin/bash
+# Small script for rolling out the helm chart
+DEFAULT_HELM_CHART=monitor
+DEFAULT_HELM_DIR=./node-monitor
+DEFAULT_NAMESPACE="node-metrics"
+
+
+# Check for the Helm Chart
+if [[ "${HELM_CHART}" == "" ]]; then
+    echo "Using default helm chart. ${DEFAULT_HELM_CHART}"
+    HELM_CHART=${DEFAULT_HELM_CHART}
+fi
+
+if [[ "${HELM_DIR}" == "" ]]; then
+    echo "Using default helm directory. ${DEFAULT_HELM_DIR}"
+    HELM_DIR=${DEFAULT_HELM_DIR}
+fi
+
+# Roll out the Helm Chart
+helm uninstall ${HELM_CHART} | true
+helm install ${HELM_CHART} ${HELM_DIR} -n ${DEFAULT_NAMESPACE} --values ${HELM_DIR}/values.yaml --create-namespace
+
+echo "Tool deployed successfully"
